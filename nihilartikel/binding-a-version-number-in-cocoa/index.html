@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <base href="/">
+        <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+        <title>kevingessner.com</title>
+        <link href='https://fonts.googleapis.com/css?family=Slabo+13px|Didact+Gothic' rel='stylesheet' type='text/css'>
+        <link rel="stylesheet" href="public/stylesheets/v4.css" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+    </head>
+    <body>
+        <header>
+            <section>
+                <h1><a href="">kevingessner.com</a></h1>
+            </section>
+            <hr><hr><hr><hr>
+        </header>
+        <article class="nihilartikel">
+            <h2>Binding a Version Number in Cocoa</h2>
+            <p>In the 1.3 release of <a href="software/functionflip/">FunctionFlip</a>, I added an About box that shows the current version number. In the spirit of <a href="http://c2.com/cgi/wiki?DontRepeatYourself"><span class="caps">DRY</span></a>, I didn&#8217;t want to hardcode the version number, as I&#8217;m likely to forget to change it in a future release. Since the information already exists in the bundle&#8217;s Info.plist file, I should treat that as the authoritative source. How could I get that information into my UI? <a href="http://developer.apple.com/documentation/Cocoa/Conceptual/CocoaBindings/CocoaBindings.html">Cocoa Bindings</a> to the rescue!</p>
+            
+            <div class="captionbox"><img src="public/images/bindings-2008-10-13/about.jpg" alt="The final result" /><p>The final result</p></div>
+            
+                <h3>Cocoa&#8217;s Display Bindings</h3>
+            
+                <p>First, I added an NSTextField to the About window in the project&#8217;s <span class="caps">NIB</span>. Thanks to the wonder that is Cocoa-plus-Interface-Builder, I can edit all of the field&#8217;s bindings directly from the IB Inspector. The binding of interest is &#8220;Display Pattern Value1&#8221;, in the &#8220;Value With Pattern&#8221; category. As explained in <a href="http://developer.apple.com/documentation/Cocoa/Reference/CocoaBindingsRef/Concepts/BindingTypes.html#//apple_ref/doc/uid/20002305-217429">Apple&#8217;s docs</a> this binding creates complex text from one or more bound values.</p>
+            
+                <p><div class="captionbox righten outside"><img src="public/images/bindings-2008-10-13/bindings.gif" alt="The bindings inspector"><p>The bindings inspector</p></div>In my situation, I want to display the text &#8220;You&#8217;re using FunctionFlip x.y&#8221;, with x.y replaced with the version number. The binding uses a special form for the text you want replaced: <code>%{value1}@</code> (or <code>value2</code>, etc.). So I set the Display Pattern value to &#8220;You&#8217;re using FunctionFlip %{value1}@&#8221;. Next, I bind the value to the text I want to appear; in this case, the <code>bundleVersionNumber</code> key of the window&#8217;s controller.</p>
+            
+                <h3>Providing the Version Number</h3>
+            
+                <p>Of course, the window controller doesn&#8217;t (yet) provide <code>bundleVersionNumber</code>. Since this is a read-only key, all I have to do is provide <code>- (NSString *)bundleVersionNumber</code> (<em>line breaks marked \</em>):</p>
+            
+            <p><code class="block"> <pre>- (NSString *)bundleVersionNumber {</pre>
+            <pre>    return [[[NSBundle bundleWithIdentifier:\</pre>
+            <pre>        FF_PREFPANE_BUNDLE_IDENTIFIER] infoDictionary]\</pre>
+            <pre>        valueForKey:@&#34;CFBundleVersion&#34;];</pre>
+            <pre>} </pre></code></p>
+            
+                <p><a href="http://developer.apple.com/documentation/Cocoa/Reference/Foundation/Classes/NSBundle_Class/Reference/Reference.html#//apple_ref/doc/uid/20000214-BCICBHBA"><span class="caps">NSB</span>undle&#8217;s <code>infoDictionary</code> method</a> provides the contents of Info.plist as an <span class="caps">NSD</span>ictionary. Then it&#8217;s just a matter of extracting the <code>CFBundleVersion</code> key, which holds the version number.</p>
+            
+                <p>So that&#8217;s all there is to it&#8212;-the tight integration within the Cocoa <span class="caps">API</span> not only make the version number from Info.plist available in my code, but I can drop it into my UI with little code.</p> 
+
+            <div class="nihilartikel__byline">
+                <p>-- Kevin Gessner<br>October 13, 2008</p>
+                <p>This is part of Nihilartikel, my collected writings.<br><a href="">Back to the home page</a></p>
+            </div>
+        </article>
+
+        <footer>
+            <hr><hr><hr><hr>
+            <section>
+                <p>kevingessner.com, since 2007. This is v4, the content and design of which are available under a <a href="http://creativecommons.org/licenses/by-nc-sa/3.0/">Creative Commons BY-NC-SA license</a> (unless otherwise noted). If you notice any bugs or problems, or just have a comment, please <a href="contact/">let me know</a>. Thanks for visiting!</p>
+            </section>
+        </footer>
+        <script>
+            (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+            (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+            m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+            })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+            ga('create', 'UA-6864657-1', 'auto');
+            ga('send', 'pageview');
+        </script>
+    </body>
+</html>

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <base href="/">
+        <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+        <title>kevingessner.com</title>
+        <link href='https://fonts.googleapis.com/css?family=Slabo+13px|Didact+Gothic' rel='stylesheet' type='text/css'>
+        <link rel="stylesheet" href="public/stylesheets/v4.css" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+    </head>
+    <body>
+        <header>
+            <section>
+                <h1><a href="">kevingessner.com</a></h1>
+            </section>
+            <hr><hr><hr><hr>
+        </header>
+        <article class="nihilartikel">
+            <h2>How Elasticsearch Made Kiln's Search 1000x Faster</h2>
+            <p><em>This article was also published on InfoQ as <a href="http://www.infoq.com/articles/kiln-elasticsearch">How Fog Creek Software Made Kiln's Search 1000x Faster with Elasticsearch</a>.</em></p>
+            <p>One of the most satisfying things I do as a developer is optimizing: making
+            parts of my product, Kiln, faster. Having the best features or the nicest
+            interface means nothing if your product is so slow that no one can stand using
+            it. Last year, my team had the opportunity to optimize one of the slowest parts
+            of Kiln, and we made it faster--much faster.</p>
+            <p>This is the story of how a remarkable tool called Elasticsearch helped make
+            Kiln 1000x faster.</p>
+            <p>Kiln is a source code management tool, which offers hosting for Mercurial and
+            Git repositories, with code review and a host of other awesome features. We
+            launched Kiln in early 2010, and v1 was admittedly pretty basic--repository
+            management, code reviews, pushing and pulling with permissions--enough of
+            a core product that we knew we were onto something useful. But as we used Kiln
+            to develop Kiln, we noticed some shortcomings.</p>
+            <p>One of the biggest features we wanted was search. Digging through mountains of
+            source code by hand is nearly impossible, and tools like grep only work if you
+            already have a copy of the code on your computer. So when we were working on
+            version 2.0 the summer after launch, we decided that searching commit messages,
+            filenames, and file contents would be one of the hallmark features of the
+            release.</p>
+            <h3>SQL Server</h3>
+            <p>At the time, we evaluated a few different options for search engines. For
+            searching commit messages, we stuck with a tool we already had in our arsenal:
+            Microsoft SQL Server. Commits were already stored in a table in an
+            easy-to-query format, so we enabled MSSQL's Full Text Search feature, and we
+            were off to the races. We treated searching for filenames similarly: stick them
+            in a table, and let SQL Server do the work.</p>
+            <h3>OpenGrok</h3>
+            <p>Searching the code itself was a bigger challenge requiring a different set of
+            tools. Looking at our options for code search engines pointed us toward
+            OpenGrok, a remarkable piece of software that seemed to do just what we wanted.
+            Starting with the code in a directory, OpenGrok uses ctags to parse the code
+            (supporting dozens of languages out of the box), and indexes it with Apache
+            Lucene. OpenGrok not only indexes every class, method, and variable in your
+            code; it can even distinguish definitions from references, so you can search
+            for all the places a method is called, not just where it’s defined.</p>
+            <p>We launched Kiln 2 with search and a slew of other features, and we were happy
+            with what we'd accomplished: deep insight into your source code, from its
+            history and commit messages to every line your team had committed.</p>
+            <p>But as Kiln grew, we realized that search wasn't working quite as well as we'd
+            hoped. Honestly, even in the best of circumstances, searches were slower than
+            we wanted them to be. Under peak load, they were nearly unusable. OpenGrok,
+            while an impressive tool, didn't scale well to tens of thousands of
+                repositories and terabytes of code. Indexes sometimes failed to update, and
+                indexing the code in real time required keeping a checked-out copy of each
+                repository, not just the history, doubling our storage requirements. SQL
+                Server's Full Text Search turned out to be slow at our scale, and placed
+                a lot of load on our database servers. Plus, it had a variety of
+                shortcomings that limited what new features we could add to Kiln.</p>
+            <p>In early 2012, we found ourselves with the opportunity to rethink our search
+            architecture. Kiln's original design created a new database for every Kiln
+            account. SQL Server does not scale well to thousands of databases on a server,
+            so we decided to rearchitect Kiln into a multi-tenant database app, where every
+            account's data was stored in the same database. Since we would be migrating
+            each account's individual database into the new database, we had an opportunity
+            to make some substantial changes in our data storage. That meant we could also
+            revamp our search engine. Leaving OpenGrok and Full Text Search would be
+            a major undertaking, but the benefits would be enormous.</p>
+            <h3>Back to the drawing board</h3>
+            <p>Going back to the drawing board, we asked ourselves how you do search right in
+            2012. We wanted to make search the best feature of Kiln, a remarkable feature,
+            one that people will talk about. Research pointed us to two different but
+            similar-seeming search engines: Elasticsearch and Apache Solr. Both use
+            Lucene—by far the most powerful open-source search engine—under the hood, but
+            offer a friendlier interface and hide some of Lucene's complexity. Both offer
+            a JSON API, a wealth of different queries, and all the power of Lucene. So
+            which would be right for Kiln?</p>
+            <p>After a lot of reading and playing around with each tool, Elasticsearch was
+            looking like the front runner: easy-to-use, powerful, and scalable search that
+            was blazingly fast. Getting Elasticsearch running was easy: if you have Java
+            installed, just download the latest release, run it, and you're off to the
+            races. Within just a few minutes, I was able to start developing a schema and
+            storing test data. Though Elasticsearch's documentation describes the queries
+            that are available, being able to run my own sample queries was a great help in
+            learning the best way to use Elasticsearch. The last test was to make sure that
+            Elasticsearch could hold up to the size of Kiln On Demand's full data set. We
+            didn't want to requisition new servers just for this test, so we did the test
+            the Hacker's Way. Elasticsearch runs great on commodity hardware, taking
+            whatever resources you can offer from as many machines as you can find, and
+            creating a single cluster. So, we enlisted the help of nearly every developer
+            in the office to download Elasticsearch and join a cluster on the office
+            network. Over the course of an afternoon, we loaded hundreds of gigabytes of
+            data into and out of Elasticsearch. It didn't break a sweat, returning results
+            in milliseconds even under heavy write load. Solr didn't live up to our
+            expectations -- read performance suffered under heavy write loads, while ES was
+            still screaming fast. Elasticsearch was clearly the solution for us.</p>
+            <h3>Elasticsearch</h3>
+            <p>Elasticsearch stores "documents", which are a structured data type similar to
+            a JSON object. Every document is a set of keys and values, where the keys are
+            strings and the values are one of numerous data types, such as strings,
+            numbers, dates, and lists. The first data that we moved into Elasticsearch was
+            commit messages, replacing SQL Server’s Full Text Search. Every commit document
+            stores three of those key-value pairs: the commit’s date, the author, and the
+            commit message. Queries are expressed with a variety of operators, looking at
+            one or many of these values, and scoring results by the closeness of the match.
+            The basic query operators search for text in strings, but other query
+            operators, such as built-in support for boolean queries and date ranges, enable
+            you to write complex queries that are optimized to run in milliseconds.</p>
+            <p>When you add a document to Elasticsearch, you do so by making an HTTP POST with
+            one or more documents as JSON objects. You search with JSON, too: send your
+            query in JSON with a simple HTTP GET. This RESTful architecture makes it easy
+            to test and check on data directly from the command line. In fact, cURL is the
+            tool I use most often for debugging and developing with Elasticsearch!</p>
+            <p>The client libraries for Python and .NET made it easy to integrate
+            Elasticsearch into our existing codebase. Rather than writing JSON by hand to
+            index new documents or retrieve query results, these wrappers work with Python
+            and C# objects. For example, search results come out as strongly-typed C#
+            objects, alongside the rest of our data access objects.</p>
+            <p>We initially stumbled a few times trying to figure out the right structure for
+            the commit documents. It's important to remember that Elasticsearch is not
+            a relational database, so the rules that you've learned for MSSQL or another
+            RDBMS don't always apply. The most important concept you must unlearn is
+            denormalization: Elasticsearch doesn’t allow joins or subqueries, so
+            denormalizing your data is a must.</p>
+            <p>For instance, we store a commit's document once for every repository it appears
+            in. This a terrible mistake if you’re thinking in terms of a relational
+            database, but with Elasticsearch, it’s the best way. Searching for a commit in
+            a given repository is fast because the commit message is stored right next to
+            the metadata that makes up the index, reducing the number of data reads
+            required. The index size doesn't grow as much as you'd think, since Lucene
+            internally compresses the index, so multiple similar documents don't explode
+            its size.</p>
+            <p>Further, Elasticsearch does not generally allow you to update a single field of
+            an existing document. Instead, you must re-index the document, including fields
+            that haven't changed. This required a change in our thinking, since it's so
+            unlike a database. With SQL Server, updating a single field in a single row of
+            a million-row table is fast, so we were used to storing data</p>
+            <p>Once we settled on a data format, we were off to the races. We were happy to
+            find that Elasticsearch’s founder and lead developer Shay Banon, along with
+            a helpful community, were active on the Elasticsearch mailing list. Our
+            questions and concerns were answered quickly, a huge help when we were badly
+            stuck. We've been happy to contribute patches back upstream—it's the least we
+            can do for this community and project.</p>
+            <p>With commit messages, Elasticsearch's analytics engine gave us some remarkable
+            results. Text written in human languages is subjected to a process called
+            <em>stemming</em> before it is indexed. This means that a word like "running" is
+            indexed as "run" the most basic form of the word. Other forms, like "runs" and
+            "runner" are indexed the same way. Later, a search for "run", "runner",
+            "running", or any other form will undergo the same process, looking up the
+            index's entries for "run". Thus, you get results for all forms of a search
+            term, without having to index every form. This combination of expressive
+            searching and small indexes means you get results quickly, even when you don't
+            know the exact phrase or keyword you're looking for.</p>
+            <p>Elasticsearch shines in the datacenter, too. We chose servers with SSDs and
+            lots of RAM, since Elasticsearch works best when it can read its indexes as
+            fast as possible. Since the only prerequisite is Java, we were able to get up
+            and running quickly. If you're concerned about reliability, Elasticsearch will
+            help you sleep better at night, since it supports replication out of the box.
+            With a cluster of machines running Elasticsearch, you can specify that every
+            document be replicated across multiple machines, so losing a single node won't
+            cause any downtime. Data is automatically shifted between nodes as they enter
+            and leave the cluster, so expanding capacity is easy, too. We've seen search
+            speed stay constant as our data size has grown by ten times.</p>
+            <p>We’re currently running only two nodes for our production cluster and scaling
+            out hasn’t been necessary yet. But we know it will be easy when the time comes:
+            these two boxes were not the original production nodes. When the original two
+            nodes proved underpowered, we simply provisioned the new servers and added them
+            to the cluster. Then, we increased the replica count, and ES automatically
+            copied all the documents to exist on all four servers. Then we simply shut down
+            the old nodes and turned the replica count back down to two. Voilà--upgrading
+            running infrastructure with no downtime.</p>
+            <p>We released the new Elasticsearch-powered commit search in mid-2012 with our
+            new multi-tenant architecture. As with any successful infrastructure change,
+            one of the goals was that the customer shouldn't even notice that something had
+            changed! But every Kiln user noticed that searches were lightning fast. What
+            kind of speed are we talking about? With our old architecture, searches ran
+            with a strict thirty-second timeout, and a disappointingly high number of
+            queries ran into it. Queries that did complete still took several seconds.
+            Elasticsearch can find better results for the same queries in as little as five
+            milliseconds. That's right--searching with Elasticsearch is one thousand times
+            faster. It's fast enough that we added as-you-type search, so you can get
+            results as fast as you can think.</p>
+            <h3>Migrating from OpenGrok to Elasticsearch</h3>
+            <p>Seeing those results, we quickly started work on replacing OpenGrok with
+            Elasticsearch for code search because we wanted that speed wherever we could
+            get it. Over the next few months, we moved several terabytes of code indexes
+            from OpenGrok to Elasticsearch. Indexing code in Elasticsearch required some
+            careful planning. OpenGrok is designed specifically to be a code search tool,
+            so we lost certain benefits in going to a more general solution, like
+            distinguishing references from definitions in code or ignoring keywords based
+            on a file's language. But when searches are so slow that no one can use them,
+            those features don't mean much.</p>
+            <p>After some experimentation, we settled on a data structure where each file is
+            processed to extract unique tokens: every keyword, class, method, comment, and
+            so on that's used in the file. The ES document for that file includes the file
+            name and those tokens. Indexing only the unique tokens makes our index much
+            smaller compared to indexing the unprocessed contents (just think about the
+            number of times that "new", "public", or "return" is repeated in the average
+            source file). This index also serves double duty: when searching for file
+            names, we simply search the file names that are stored for each code document
+            and ignore the code tokens.</p>
+            <p>A smaller index means faster searches, though rendering results is a little
+            trickier. Once Elasticsearch tells us that a given file is a match for the
+            query, we send the results to our storage servers, where the file's complete
+            contents are read and matching lines are highlighted. This extra bit of
+            complexity gives us an average search time of under fifty milliseconds across
+            terabytes of data. That’s speed worth talking about!</p>
+            <p>These days, our Elasticsearch cluster adds millions of new documents every day,
+            and handles a constant load of searches across commits, files, and code faster
+            than we ever thought it could. We're proud of our search engine, proud enough
+            to put a big search box front and center on every Kiln page. Since adding
+            a fast new search engine, we've found places to use it that we didn't expect.
+            For instance, Kiln can show the diff between any two commits in a repository.
+            Where in the past we would have made you type in the unique commit IDs of both
+            commits, we now simply show a search box, knowing that you can find the correct
+            commit from a repository of tens of thousands in just a few key presses.
+            Elasticsearch has given us Google-fast searches with a powerful query language
+            and all the benefits of an open source project.</p>
+            <p><em>Copyright &copy; Fog Creek Software, Inc. 2013</em></p>
+
+            <div class="nihilartikel__byline">
+                <p>-- Kevin Gessner<br>September 11, 2013</p>
+                <p>This is part of Nihilartikel, my collected writings.<br><a href="">Back to the home page</a></p>
+            </div>
+        </article>
+
+        <footer>
+            <hr><hr><hr><hr>
+            <section>
+                <p>kevingessner.com, since 2007. This is v4, the content and design of which are available under a <a href="http://creativecommons.org/licenses/by-nc-sa/3.0/">Creative Commons BY-NC-SA license</a> (unless otherwise noted). If you notice any bugs or problems, or just have a comment, please <a href="contact/">let me know</a>. Thanks for visiting!</p>
+            </section>
+        </footer>
+        <script>
+            (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+            (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+            m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+            })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+            ga('create', 'UA-6864657-1', 'auto');
+            ga('send', 'pageview');
+        </script>
+    </body>
+</html>

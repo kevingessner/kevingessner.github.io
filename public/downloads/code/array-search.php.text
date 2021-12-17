@@ -1,0 +1,66 @@
+<?
+/*
+
+Fast Array Membership in PHP
+Kevin Gessner
+August 2008
+
+See http://kevingessner.com/frog/articles/2008/08/24/fast-array-membership-in-php/
+
+*/
+
+include('../Benchmark/Timer.php');
+
+for($i = 0; $i < 500; $i++) {
+	$array[] = rand(0, 10000);
+}
+$array[] = 11000;
+for($i = 0; $i < 500; $i++) {
+	$array[] = rand(0, 10000);
+}
+
+$res = false;
+
+define('ITERATIONS', 10000);
+$timer = new Benchmark_Timer(TRUE);
+
+for($i = 0; $i < ITERATIONS; $i++) {
+	$res = array_search(11000, $array, true);
+}
+$timer->setMarker('array_search (Strict): ' . memory_get_usage(true));
+
+for($i = 0; $i < ITERATIONS; $i++) {
+	$res = array_search(11000, $array, false);
+}
+$timer->setMarker('array_search (Loose): ' . memory_get_usage(true));
+
+for($i = 0; $i < ITERATIONS; $i++) {
+	$res = in_array(11000, $array, true);
+}
+$timer->setMarker('in_array (Strict): ' . memory_get_usage(true));
+
+for($i = 0; $i < ITERATIONS; $i++) {
+	$res = in_array(11000, $array, false);
+}
+$timer->setMarker('in_array (Loose): ' . memory_get_usage(true));
+
+for($i = 0; $i < ITERATIONS; $i++) {
+	$flip = array_flip($array);
+	$res = isset($flip[11000]);
+}
+$timer->setMarker('array_flip (naive): ' . memory_get_usage(true));
+unset($flip);
+
+$flip = array_flip($array);
+for($i = 0; $i < ITERATIONS; $i++) {
+	$res = isset($flip[11000]);
+}
+$timer->setMarker('array_flip (smart): ' . memory_get_usage(true));
+
+for($i = 0; $i < ITERATIONS; $i++) {
+	foreach($array AS $k => $v) if(11000 == $v) $res = true;
+}
+$timer->setMarker('foreach: ' . memory_get_usage(true));
+
+$timer->stop();
+$timer->display();

@@ -1,0 +1,83 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+    <head>
+        <base href="/">
+        <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+        <title>miniTimer - Software - kevingessner.com</title>
+        <link href='https://fonts.googleapis.com/css?family=Arvo|Didact+Gothic' rel='stylesheet' type='text/css'>
+        <link rel="stylesheet" href="public/stylesheets/v4.css?_=1639763726.05" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
+    </head>
+    <body class="software-page">
+        <header>
+            <section>
+                <h1><a href="/software/minitimer">
+                        miniTimer</a></h1>
+                <h3 class="tagline">On schedule, off your mind</h3>
+                <img src="public/images/minitimer.png" class="icon" />
+            </section>
+            <hr><hr><hr><hr>
+        </header>
+        <div class="content">
+            <section>
+                <a class="download-link" href="/public/downloads/miniTimer/1.0/miniTimer.dmg"
+                    onclick="ga&&ga('send', 'event', 'miniTimer', 'download');return true;">
+                    Download miniTimer
+                </a>
+                <h3>Using miniTimer</h3>
+                <p>miniTimer is an unobtrusive, lightweight timer for Mac OS X. Sitting quietly at the edge of your screen, miniTimer keeps on you on schedule without being in your face.</p>
+                <p>Use the Timer menu to select a timer to start. You can also start a Custom Timer for any amount of time you want&mdash;up to billions of years on a 64-bit Mac.</p>
+                <h3>Preferences</h3>
+                <h4>Appearance</h4>
+                <p><strong>Timer Opacity</strong>: miniTimer can be set to completely opaque or completely transparent, or any value in between.</p>
+                <p><strong>Position on Screen</strong>: miniTimer can be configured to appear at the left, right, or bottom edge of your screen. If you have multiple monitors, miniTimer will use the most appropriate screen for the chosen edge.</p>
+                <h4>Notifications</h4>
+                <p>When the timer is up, miniTimer can alert you three different ways: via an OS X alert dialog, by bouncing the miniTimer Dock icon, or with a <a href="http://growl.info">Growl notification</a>.</p>
+                <p><strong>Growl Notifications</strong>: If you have <a href="http://growl.info">Growl</a> installed on your Mac, miniTimer can notify you with a configurable message. Use the Growl preference pane in System Preferences to configure the alert. If you select that the Growl notification should be "sticky", it will remain on your screen until you click it. Otherwise, it will disappear after a short delay.</p>
+                <h4>Hotkeys</h4>
+                <p>You can use a system-wide hotkey to open the Custom Timer drawer from any application. Click Set... to choose a hotkey or remove a previously set one.</p>
+                <p><a name="applescript"></a></p>
+                <h3>AppleScript Support</h3>
+                <p>miniTimer can be controlled via AppleScript.</p>
+                <pre><code>tell application "miniTimer" to ...
+                </code></pre>
+                <ul>
+                <li><code>time for "HH:MM:SS"</code> <br />
+                Starts a timer for "HH:MM:SS" hours, minutes, and seconds.</li>
+                <li><code>start custom timer</code> <br />
+                Opens the Custom Timer drawer.</li>
+                <li><code>reset</code> <br />
+                Clears any running timer.</li>
+                <li><code>get duration</code> <br />
+                Returns the duration of the currently running timer, or 0 if none is running.</li>
+                <li><code>get current time</code> <br />
+                Returns the elapsed time of the currently running timer.</li>
+                </ul>
+            </section>
+            <aside class="divider" aria-hidden="true"><hr><hr><hr></aside>
+            <section class="sidebar">
+                <p>miniTimer is written by <a href="">Kevin Gessner</a> and is <strong>free</strong>.  miniTimer requires Mac OS X 10.4 or 10.5 (Universal binary).</p>
+                <h4>Changes</h4>
+                <p>1.0 (9 July 2008): First release</p>
+                <h4>Help</h4>
+                <p><a href="software/minitimer/docs/">miniTimer Documentation</a></p>
+            </section>
+        </div>
+        <footer>
+            <hr><hr><hr><hr>
+            <section>
+                <p>kevingessner.com, since 2007. This is v4, the content and design of which are available under a <a href="http://creativecommons.org/licenses/by-nc-sa/3.0/">Creative Commons BY-NC-SA license</a> (unless otherwise noted). If you notice any bugs or problems, or just have a comment, please <a href="contact/">let me know</a>. Thanks for visiting!</p>
+            </section>
+        </footer>
+        <script>
+            (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+            (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+            m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+            })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+            ga('create', 'UA-6864657-1', 'auto');
+            ga('send', 'pageview');
+        </script>
+   </body>
+</html>

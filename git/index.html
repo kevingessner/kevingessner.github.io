@@ -1,0 +1,688 @@
+<!doctype html>
+<html lang="en">
+
+    <head>
+        <meta charset="utf-8">
+
+        <title>Git from the Ground Up</title>
+
+        <meta name="author" content="Kevin Gessner">
+
+        <link rel="stylesheet" href="css/reveal.min.css">
+        <link rel="stylesheet" href="css/theme/default.css" id="theme">
+
+        <style type="text/css">
+            @import url(http://fonts.googleapis.com/css?family=PT+Mono);
+
+            h1 {
+                margin-bottom: 36px !important;
+            }
+            h2 {
+                line-height: 1 !important;
+            }
+            blockquote {
+                font-size: 2em !important;
+                line-height: 1.2 !important;
+                box-shadow: none !important;
+            }
+            .irccat img {
+                height: 300px;
+            }
+
+            .blob, .tree, .commit, .ref {
+                font-family: 'PT Mono', monospace !important;
+                text-align: left;
+                margin: auto !important;
+                max-width: 70%;
+            }
+            .blob.empty, .tree.empty, .commit.empty, .ref.empty {
+                text-align: center;
+            }
+            .blob .type, .tree .type, .commit .type, .ref .type {
+                border: solid 7px !important;
+                font-size: 55px;
+                padding: 16px 32px;
+                margin-left: 0;
+                line-height: 3;
+            }
+            .blob .type:only-child, .tree .type:only-child, .commit .type:only-child, .ref .type:only-child {
+                margin-left: auto;
+            }
+            .reachability .blob,
+            .blob > .type {
+                border-color: red !important;
+            }
+            .reachability .tree,
+            .tree > .type {
+                border-color: green !important;
+            }
+            .reachability .commit,
+            .commit > .type {
+                border-color: orange !important;
+            }
+            .reachability .ref,
+            .ref > .type {
+                border-color: purple !important;
+            }
+            .blob .content, .tree .content, .commit .content, .ref .content {
+                width: 90%;
+                margin: auto !important;
+                font-size: 125%;
+                white-space: pre-line;
+                text-align: left;
+                line-height: 1.2;
+            }
+
+            .dag {
+                white-space: pre-line;
+            }
+            .dag .commit {
+                border: solid 7px orange !important;
+                padding: 24px;
+                border-radius: 100px;
+                font-size: 125%;
+                position: relative;
+                line-height: 1;
+                margin-bottom: 25px;
+                display: inline-block;
+                margin-bottom: 40px !important;
+                width: 53px;
+                height: 40px;
+                text-align: center;
+            }
+            .dag .commit.visible:not(.branch-base):not(.merge) + .commit:before,
+            .dag .commit.visible:last-child:after,
+            .dag .commit.merge:before,
+            .dag .commit.merge:after,
+            .dag .commit.branch-base:after {
+                content: ' ';
+                border-left: solid 7px orange !important;
+                width: 0;
+                height: 50px;
+                position: absolute;
+                bottom: 100%;
+                left: 50%;
+                margin-left: -3.5px;
+            }
+            .dag .commit.visible:last-child:after {
+                top: 100%;
+            }
+
+            .dag .commit.branch-left {
+                position: relative;
+                top: 140px;
+                left: -180px;
+            }
+            .dag .commit.branch-left .ref {
+                left: initial;
+                right: 830%;
+            }
+            .dag .commit.branch-base:after {
+                transform: rotate(-52deg);
+                height: 119px;
+                top: 60px;
+                left: 137px;
+            }
+            .dag .commit.merge {
+                position: relative;
+                top: 140px;
+            }
+            .dag .commit.merge:before {
+                top: 100%;
+            }
+            .dag .commit.merge:after {
+                transform: rotate(52deg);
+                height: 119px;
+                top: 60px;
+                left: -34px;
+            }
+
+            .dag .commit .ref {
+                border: solid 7px purple !important;
+                position: relative;
+                left: 150%;
+                top: -80%;
+                margin-left: 12px !important;
+                padding: 16px;
+            }
+
+            .error {
+                position: absolute;
+                top: 50%;
+                white-space: pre-line;
+                text-align: left;
+                font-family: 'PT Mono' !important;
+                background: #ffe7e7;
+                padding: 32px !important;
+                width: 100%;
+                font-size: 115%;
+                line-height: 1.4 !important;
+                margin-top: -150px !important;
+            }
+            .note {
+                display: inline-block;
+                background: #fff;
+                padding: 16px !important;
+                position: absolute;
+                left: 46%;
+                top: 230px;
+            }
+
+            code {
+                display: block !important;
+                font-family: 'PT Mono' !important;
+                font-size: 150% !important;
+                margin-bottom: 72px !important;
+                }
+            h2 + code {
+                margin-top: 72px !important;
+            }
+
+            .reachability span {
+                border: solid 7px !important;
+                font-size: 125%;
+                display: inline-block;
+                margin: 16px !important;
+                padding: 16px 24px !important;
+            }
+
+            pre {
+                font-size: 100% !important;
+                white-space: pre-line;
+            }
+        </style>
+    </head>
+
+    <body>
+
+        <div class="reveal">
+
+            <div class="slides">
+                <section>
+                    <h1>git<br>from the Ground Up</h1>
+                    <h3>Kevin Gessner, August 13, 2014</h3>
+
+                    <aside class="notes">
+                        Thanks all for coming!  We're going to be talking today about everyone's favorite tool, git.  Well, maybe not everyone's favorite -- if you ask irccat about git, you'll see what we really think.
+                    </aside>
+                </section>
+                <section>
+                    <h2>?git</h2>
+                    <div class="irccat">
+                        <img src="http://i.imgur.com/jjI8l.gif" />
+                        <img src="http://i.imgur.com/1Oby1vr.gif" />
+                        <img src="http://i.imgur.com/DMlPi2F.gif" />
+                        <img src="http://i.imgur.com/e7ZzDll.gif" />
+                        <img src="http://i.imgur.com/nePle7n.gif" />
+                        <img src="http://i.imgur.com/iKgop7O.gif" />
+                    </div>
+
+                    <aside class="notes">
+                        Ouch.  Why do we feel this way?  Because git is complicated and hard to use, yet we all use it every day.  It's one of the few technologies that every technical employee here has to use.  But no one's happy about it.  So I'm here to shed some light on why git works the way it does, and how an understanding of it's internal model can make it easier for you to use.
+Part of what makes git so hard to use is that is has relatively little abstraction -- the commands that you run and their sometimes-inexplicable arguments closely describe what the commands are doing in git's internal structures.  That's a UX failure for sure.  Since we're stuck with git, today we're going to learn how git internally models a repository, and hopefully some of those commands will make more sense.  In order to do that, we first need to forget that git is version control system, or that it's designed for managing source code -- because it's not.  What is git?
+                    </aside>
+                </section>
+                <section>
+                    <h2>
+                        Git is a
+                        <br>
+                        Distributed<br>
+                        Relational<br>
+                        Object<br>
+                        Database
+                    </h2>
+                    <aside class="notes">
+                    git is a distributed relational object database.  Let's break that down from the bottom up:
+                     - database: persistent store of data
+                     - object: the data it stores is typed
+                     - relational: stores and understands connections among objects
+                     - distributed: designed to replicate and transmit objects
+
+                     To understand git, you need to understand it's objects.
+                    </aside>
+                </section>
+                <section>
+                    <div class="blob empty">
+                        <span class="type">blob</span>
+                    </div>
+                    <div class="tree empty">
+                        <span class="type">tree</span>
+                    </div>
+                    <div class="commit empty">
+                        <span class="type">commit</span>
+                    </div>
+                    <div class="ref empty">
+                        <span class="type">ref</span>
+                    </div>
+                    <aside class="notes">
+                    Those objects come in four types: blob, tree, commit, and ref.
+                    </aside>
+                </section>
+                <section>
+                    <div class="blob empty">
+                        <span class="type">blob</span>
+                    </div>
+
+                    <aside class="notes">
+                    Let's start with the simplest one, blobs.
+                    Blob objects store a stream of bytes, without any regard to their content -- just a bag of bytes
+                    </aside>
+                </section>
+                <section>
+                    <div class="blob">
+                        <span class="type">blob</span>
+                        <span class="fragment id">
+                            fba24d<span class="fragment fade-out">c242f898f5e7e472c28a9adfa7a397b8f2</span>
+                        </span>
+                        <div class="content">
+                            `Twas brillig, and the slithy toves
+                            &nbsp;&nbsp;Did gyre and gimble in the wabe:
+                            All mimsy were the borogoves,
+                            &nbsp;&nbsp;And the mome raths outgrabe.
+                        </div>
+                    </div>
+
+                    <aside class="notes">
+                    Usually that means file contents, but git doesn't care.
+                    This is an example of a blob containing the first 132 bytes of jabberwocky.
+                    Every blob -- every object, in fact -- has an ID.
+                    It's the SHA-1 hash of the contents plus a header
+                    So it's unique and immutable.  If two blobs have the same ID, they have the same contents.
+                    It's also a little unwieldy at 40 hex character -- so we usually use a 6-character prefix, which is enough to be unique in most situations.  I'm going to use that from now on, but remember that it's a full 40-character hex hash.
+                    Not terribly useful on its own -- doesn't even have a filename!
+                    </aside>
+                </section>
+                <section>
+                    <div class="tree empty">
+                        <span class="type">tree</span>
+                    </div>
+                    <aside class="notes">
+                    Next up are trees.  A tree is a structured type: it is a collection of other trees and blobs.
+                    It's used to represent a directory, with files and subdirectories.
+                    </aside>
+                </section>
+                <section>
+                    <div class="tree">
+                        <span class="type">tree</span> <span class="id fragment">f9d9cd</span>
+                        <div class="content">
+                            <span class="blob empty"><span class="type">blob</span></span> fba24d jabberwocky.txt
+                            <span class="blob empty"><span class="type">blob</span></span> a76fef walrus_carpenter.txt
+                        </div>
+                    </div>
+                    <aside class="notes">
+                    It references the related trees and blobs by ID
+                    Like a blob, the tree's ID is a hash of its content -- its content is just a listing of IDs and paths (and a little metadata like mode bits)
+                    That's called content addressing: where you reference an object by its content, not some other data like a sequential ID
+                    Because the blob and sub tree IDs are included in the hash, a tree's ID doesn't just identify the filenames it contains -- it identifies the content of the subtrees and blobs that the tree references.
+                    </aside>
+                </section>
+                <section>
+                    <div class="tree">
+                        <span class="type">tree</span> <span class="id">3a6a8a</span>
+                        <div class="content">
+                            <span class="tree empty"><span class="type">tree</span></span> f9d9cd lewis_carroll
+                            <span class="blob empty"><span class="type">blob</span></span> 7bb5c1 README
+                        </div>
+                    </div>
+                    <aside class="notes">
+                    This is a new tree that references the previous one.
+                    You can see that a tree is a recursive data type -- it stores references to other trees, which in turn reference blobs.
+                    </aside>
+                </section>
+                <section>
+                    <div class="tree">
+                        <span class="type">tree</span> <span class="id">3a6a8a</span>
+                        <div class="content">
+                            /
+                            &nbsp;&nbsp;lewis_carroll/
+                            &nbsp;&nbsp;&nbsp;&nbsp;jabberwocky.txt
+                            &nbsp;&nbsp;&nbsp;&nbsp;walrus_carpenter.txt
+                            &nbsp;&nbsp;README
+                        </div>
+                    </div>
+                    <aside class="notes">
+                    The tree represents this complete directory structure -- but remember, tree 3a6a8a identifies these files with particular content, based on the IDs it stores.
+                    </aside>
+                </section>
+                <section>
+                    <span class="blob empty"><span class="type">blob</span></span>
+                    +
+                    <span class="tree empty"><span class="type">tree</span></span>
+                    <h2>=</h2>
+                    <h2>Files + Directories</h2>
+                    <aside class="notes">
+                    so to recap, git's blob and tree objects represent the filesystem's files and directories
+                    a bunch of objects that are interrelated are called a repository
+                    we can start to see how you implement a VCS on top of git: if you have file that's changing over time, you can create a blob for every version; and you can create a tree for every version of a directory
+                    many of git's commands operate on blobs and trees.  git add creates blobs from the files in your working directory, and stores them in the index, a list of files you've edited.  When you run git status, it compares your working directory to the index and the latest commit, and finds any blobs that differ.  git diff operates on trees and blobs to show changes over time -- git uses a neat recursive diff algorithm to compare two trees, looking at each subtree in turn.
+                    Of course, you don't generally work with blobs and trees; they're just under the surface.  you usually work with the next type of object: commit.
+                    </aside>
+                </section>
+                <section>
+                    <span class="commit empty"><span class="type">commit</span></span>
+                    <aside class="notes">
+                    That's where the commit object comes in.
+                    It references a tree, other metadata like author, time, etc.
+                    </aside>
+                </section>
+                <section>
+                    <div class="commit">
+                        <span class="type">commit</span> <span class="id">78fdc6</span>
+                        <div class="content">
+                            <span class="tree empty"><span class="type">tree</span></span> 3a6a8a
+                            Author: Kevin Gessner
+                            Date: 2014-08-13 17:33:00 UTC
+
+                            Some poems
+                        </div>
+                    </div>
+                    <aside class="notes">
+                    This is an example commit pointing to our tree before.
+                    That single tree ID references a complete snapshot of a directory as it existed at a point in time
+                    Like a blob and a tree, a commit is identified by a hash of its contents (the tree and the metadata).
+                    </aside>
+                </section>
+                <section>
+                    <div class="commit">
+                        <span class="type">commit</span> <span class="id">09b776</span>
+                        <div class="content">
+                            <span class="tree empty"><span class="type">tree</span></span> 5af03e
+                            <span class="commit empty"><span class="type">commit</span></span> 78fdc6
+                            Author: Kevin Gessner
+                            Date: 2014-08-13 17:35:00 UTC
+
+                            More poems
+                        </div>
+                    </div>
+                    <aside class="notes">
+                    can also store one other important piece of data: references to any number of parent commits
+                    parents create an overall structure of your repository -- they change the repository from a collection of objects into a stream, representing changes over time to a single project
+                    commits with references to parents creates structure called a Directed Acyclic Graph, or DAG
+                    </aside>
+                </section>
+                <section>
+                    <div class="dag">
+                        <span class="commit fragment">ea</span>
+                        <span class="commit visible">6f</span>
+                        <span class="commit visible">a3</span>
+                        <span class="commit visible">74</span>
+                    </div>
+                    <aside class="notes">
+                    each commit references it's parent; time flows up, so the root is at the bottom
+                    New commits [GO] go at the top, referencing an existing commit.
+
+                    so this is a VCS! a series of commits, each a snapshot of your code at a point in time, with metadata
+                    but while the benefits of content addressing and immutability are cool -- for instance, we note the commit ID every time we deploy etyweb, so you can look in gihub for any deploy's code-- it's a pain to use hashes all the time. git has one more type: refs
+
+                    </aside>
+                </section>
+                <section>
+                    <span class="ref empty"><span class="type">ref</span></span>
+                    <aside class="notes">
+                    a ref is a name for a hash -- that's all there is to it, just keys and values
+                    </aside>
+                </section>
+                <section>
+                    <div class="ref">
+                        <span class="type">ref</span>
+                        <div class="content">
+                            09b776 master
+                            <span class="fragment">09b776 HEAD</span>
+                            <span class="fragment">2166b5 new-feature
+                            f462dd review/kgessner-786</span>
+                        </div>
+                    </div>
+                    <aside class="notes">
+                    master is the most common ref, by default representing the latest commit (the one with no children)
+                    HEAD is another -- it's the commit that your repository has checked out, the one that will be the parent of your next commit, and the files that you see in the repository.  that's usually the same as master -- it's the basis on which your DAG will build.
+                    But you can have as many refs as you want -- Etsyweb has more than five thousand
+                    there's nothing special about naming only commits -- you can have a ref to any object. again it's just a name.  refs are also implemented in the same way as tags, which are a permanent reference-- git doesn't let you change them
+                    </aside>
+                </section>
+                <section>
+                    <div class="dag">
+                        <span class="commit fragment" data-fragment-index="1">ea <span class="ref">master</span></span>
+                        <span class="commit visible">6f <span class="ref fragment fade-out" data-fragment-index="1">master</span></span>
+                        <span class="commit visible">a3</span>
+                        <span class="commit visible">74</span>
+                    </div>
+                    <aside class="notes">
+                    Git maintains certain invariants when you're working with refs -- for instance, if you have the master checked out, when you commit, master will now point to your new commit.  this is called moving a ref.
+                    In fact, the complete object database is a directed acyclic graph: the objects are the nodes, the references are the edges.  Graph theory is a wide field of CS study with lots of existing research.  a quick aside: what guarantees that the graph doesn't have cycles?  Why can't an object reference itself, or another object and create a cycle?  The ID of any object is a hash of all the IDs it references, and SHA-1 hashes are not predictable. When you're creating a commit, you'd have to find a hash that when hashed with the other metadata results in itself -- a computationally infeasible problem.
+                    </aside>
+                </section>
+                <section>
+                    <div class="blob empty">
+                        <span class="type">blob</span>
+                    </div>
+                    <div class="tree empty">
+                        <span class="type">tree</span>
+                    </div>
+                    <div class="commit empty">
+                        <span class="type">commit</span>
+                    </div>
+                    <div class="ref empty">
+                        <span class="type">ref</span>
+                    </div>
+                    <aside class="notes">
+                    With these four types we've made a repository!  Yay!  That's all you need to work with git, blobs, trees, commits, and refs.
+                    </aside>
+                </section>
+                <section>
+                    <h2>
+                        Git is a
+                        <br>
+                        Distributed<br>
+                        Relational<br>
+                        Object<br>
+                        Database
+                    </h2>
+                    <aside class="notes">
+                    It covers three parts of my earlier definition: the Relational Object Database part.  But what about the Distributed part?
+                    </aside>
+                </section>
+                <section>
+                    <h2>Distributed = Push & Pull</h2>
+                    <aside class="notes">
+                    In git, "Distributed" is what happens when you push and pull.  What does that do to our objects?
+                    </aside>
+                </section>
+                <section>
+                    <div class="dag">
+                        <span class="commit fragment" data-fragment-index="1">ea <span class="ref">origin/master</span><span class="ref">master</span></span>
+                        <span class="commit fragment" data-fragment-index="1">6f</span>
+                        <span class="commit visible">a3 <span class="ref fragment fade-out" data-fragment-index="1">master</span></span>
+                        <span class="commit visible">74</span>
+                    </div>
+                    <aside class="notes">
+                    Let's say you've got a happy little repository here, with master pointing to your last commit.  Then you run `git pull`.  What happens?
+                    when you pull, git pull origin master (or just git pull) you're telling git to make your master ref point to the same hash -- the same commit -- that origin's master points to. and it makes the files on disk match the tree of that commit.
+                    it also creates a ref called origin/master -- points to the commit that was master the last time you talked to origin.  we'll see why this is useful later.
+                    </aside>
+                </section>
+                <section>
+                    <div class="reachability">
+                        <p class="fragment fade-out" data-fragment-index=1>
+                            <span class="ref">master</span> <span class="commit">a3f459</span>
+                        </p>
+                        <p class="fragment" data-fragment-index=1>
+                            <span class="ref">master</span> <span class="commit">ea0bbc</span>
+                        </p>
+                        <p class="fragment" data-fragment-index=2>
+                            <span class="tree">67a0a5</span> <span class="commit">14d4ee</span>
+                        </p>
+                        <p class="fragment" data-fragment-index=3>
+                            <span class="tree">7acfe8</span> <span class="tree">f02396</span> <span class="commit">bc838c</span>
+                        </p>
+                        <p class="fragment" data-fragment-index=4>
+                            <span class="blob">5ebc4d</span> <span class="blob">540a0b</span> <span class="tree">2256a8</span> <span class="commit">6f8fee</span>
+                        </p>
+                    </div>
+                    <aside class="notes">
+                    How does it do that? How does it know what the correct files are for the new master commit, and how does it now what data to download?  Git figures out what objects your repository needs from the remote using an algorithm based on reachability.
+                    Let's walk through it.  Your mater ref pointed to this commit; then you pull, and it changes the ref.  Your repository doesn't have that commit object, so it downloads from the remote.  Then it looks at the objects that commit references: a tree and probably a parent commit, and downloads those.  Then it looks at the newly downloaded objects, and fetches their references, and so on, recursively grabbing objects until there are no more to download.  At this point, your repository is identical to the remote!
+                    Remember I said the object database is a directed acyclic graph? This reachability algorithm is a graph-walking algorithm, like you might remember from a CS course.  The actual algorithm is smarter to be more efficient and reduce round-trips, but it still does the same work.
+                    </aside>
+                </section>
+                <section>
+                    <div class="dag">
+                        <span class="commit fragment" data-fragment-index="2">f5 <span class="ref">master</span></span>
+                        <span class="commit visible">ea <span class="ref">origin/master</span><span class="ref fragment fade-out" data-fragment-index="2">master</span></span>
+                        <span class="commit visible">6f</span>
+                        <span class="commit visible">a3</span>
+                        <span class="commit visible">74</span>
+                    </div>
+                    <div class="error fragment" data-fragment-index="3">! [rejected]        master -> master (non-fast-forward)
+                             error: failed to push some refs to 'git@github.etsycorp.com:Engineering/Etsyweb.git'
+                             To prevent you from losing history, non-fast-forward updates were rejected
+                             Merge the remote changes (e.g. 'git pull') before pushing again.  See the
+                             'Note about fast-forwards' section of 'git push --help' for details.</div>
+                    <aside class="notes">
+                         Alright, so: you've pulled the changes from the remote, you do your work, and make a new commit. [GO]  The master ref moves, but origin/master stays -- remember, it points to where the origin's master ref was the last time you communicated with it.  Now you're ready to push [GO] and you get this error.
+                         I've sure you've seen it -- and perhaps you've looked a git push --help like it suggests, and come away scratching your head.   what is a "non-fast-forward update"?  you've probably learned through trial and error that this means you need to git pull -- but why? Let's use what we've learned about how git works to unpack this error.
+                    </aside>
+                </section>
+                <section>
+                    <div class="dag">
+                        <span class="commit merge fragment" data-fragment-index="2">8a <span class="ref">master</span></span>
+                        <span class="commit branch-left branch-base fragment" data-fragment-index="1">0c <span class="ref">origin/master</span></span>
+                        <span class="commit visible">f5 <span class="ref fragment fade-out" data-fragment-index="2">master</span></span>
+                        <span class="commit visible">ea <span class="ref fragment fade-out" data-fragment-index="1">origin/master</span></span>
+                        <span class="commit visible">6f</span>
+                        <span class="commit visible">a3</span>
+                    </div>
+                    <aside class="notes">
+                    Here we are again, ready to push.  We pull, [GO] and git grabs a new commit and updates origin/master.  A "non-fast-forward update" means that origin/master can't be reached by walking backwards from your master. git started from your proposed, pushed master, and walked its parents, and it didn't find the current master.  YOu can see from the DAG here why -- your master commit and origin/master are parallel lines of development.  Neither is a parent or ancestor of another.  if git accepted your push, those other commits would disappear -- they would no longer be reachable from master. that's not good!
+                    How can git fix this?  There are two ways.  First is to create a merge commit, a commit with two parents [GO] that ties the two branches together.  The tree in the merge commit contains all the changed blobs from your commits and the remote commits.  You can safely push this without losing any commits, because both branches are reachable from it.
+                    </aside>
+                </section>
+                <section>
+                    <span class="note fragment" data-fragment-index="3">Same changes, different ID</span>
+                    <div class="dag">
+                        <span class="commit branch-left fragment" data-fragment-index="2">35 <span class="ref">master</span></span>
+                        <span class="commit branch-left branch-base fragment" data-fragment-index="1">0c <span class="ref">origin/master</span></span>
+                        <span class="commit visible">f5 <span class="ref fragment fade-out" data-fragment-index="2">master</span></span>
+                        <span class="commit visible">ea <span class="ref fragment fade-out" data-fragment-index="1">origin/master</span></span>
+                        <span class="commit visible">6f</span>
+                        <span class="commit visible">a3</span>
+                    </div>
+                    <aside class="notes">
+                    The other way to resolve this is what we do at Etsy: rebasing.  You start with your work, and pull in the remote changes. Now, instead of creating a single commit that merges the two lines of development, you rewrite your commits to be children of the new origin/master. changing the parent of a branch of commits is also known as changing their base, hence "rebasing". your changes are kept, as are everyone else's. you get a clean, linear history.
+                    you can see, commit f5 became commit 35 -- remember, the parent ID is part of the content of the commit, so changing the parent changes the hash! that means, if you've pushed a commit somewhere public, you shouldn't rebase it -- that unique ID to identify your commit is no longer valid.
+                    rebasing also creates what git calls "garbage": the commit object f5 (and some of the trees it references) is no longer reachable from any of your refs. git doesn't need it anymore, and it will take up extra space on disk. git's gc process (which you might have had to run) finds and removes unreachable objects.
+                    Thinking in terms of git's object model offers a lot of clarity into why git does what it does.
+                    </aside>
+                </section>
+                <section>
+                    <code class="fragment" data-fragment-index="1">cat-file hash-object .git/*</code>
+                    <h2>Plumbing</h2>
+                    <h3>vs</h3>
+                    <h2>Porcelain</h2>
+                    <code class="fragment" data-fragment-index="1">add commit push pull</code>
+                    <aside class="notes">
+                    If you want to learn more, you can use git's internal commands to investigate your repositories.  Git's commands are generally broken into two groups, called "plumbing" and "porcelain".  [GO] The porcelain commands like add, commit, push, and pull are the ones you're used to.  They are implemented using the plumbing commands that work with git's objects directly.  cat-file shows the raw contents of an object; hash-object is the inverse, creating objects from their contents; and many others -- run git help --all and it will tell you everything it knows how to do.  you can also just poke around in the .git folder in your repository -- you'll find all these objects and more
+                    </aside>
+                </section>
+                <section>
+                    <h2>git hash-object == write</h2>
+                    <pre>
+                        $ git hash-object --stdin -w
+                        <span class="fragment">`Twas brillig, and the slithy toves
+                        &nbsp;&nbsp;Did gyre and gimble in the wabe:
+                        All mimsy were the borogoves,
+                        &nbsp;&nbsp;And the mome raths outgrabe.
+                        ^D</span>
+                        <span class="fragment">fba24dc242f898f5e7e472c28a9adfa7a397b8f2</span> </pre>
+                    <aside class="notes">
+                    Let's see how those plumbing commands work.  First up, hash-object is used for writing objects.  You give it the content, and it creates the object and prints the ID.
+                    </aside>
+                </section>
+                <section>
+                    <h2>git cat-file == read</h2>
+                    <pre>
+                        $ git cat-file blob fba24dc242f898f5e7e472c28a9adfa7a397b8f2
+                        <span class="fragment">`Twas brillig, and the slithy toves
+                        &nbsp;&nbsp;Did gyre and gimble in the wabe:
+                        All mimsy were the borogoves,
+                        &nbsp;&nbsp;And the mome raths outgrabe.</span> </pre>
+                    <aside class="notes">
+                        cat-file returns the contents of an object, from its ID.
+                    </aside>
+                </section>
+                <section>
+                    <pre>
+        $ git cat-file -p fba24dc242f898f5e7e472c28a9adfa7a397b8f2 | shasum
+        276b1457d59e299e07184a39520c3cbd8db62fb3  - </pre>
+                    <pre class="fragment">
+        $ (printf "blob 132\x00"; git cat-file blob fba24dc242f898f5e7e472c28a9adfa7a397b8f2) | shasum
+        fba24dc242f898f5e7e472c28a9adfa7a397b8f2  - </pre>
+                    <aside class="notes">
+                    Recall that an object's ID is the SHA-1 hash of its contents.  But if we pipe cat-file to shasum, we get a different result.  Why?  Because the object on disk also includes a header, used internally by git.  For blobs, the header is the string "blob", the length of the content, and a null byte. [GO] The content follows.  if we include that header ourselves, we get the correct hash.  Neat!
+                    </aside>
+                </section>
+                <section>
+                    <pre>
+$ cat .git/objects/fb/a24dc242f898f5e7e472c28a9adfa7a397b8f2 | python -c "import sys; import zlib; print
+&nbsp;&nbsp;zlib.decompress(sys.stdin.read()).encode('string_escape')"
+blob 132\x00`Twas brillig, and the slithy toves\n  Did gyre and gimble in the wabe:\nAll mimsy were the borogoves,\n  And the mome raths outgrabe.\n </pre>
+                    <aside class="notes">
+                    The contents are stored compressed on disk with zlib, so we can see the header that way, too.  The object is stored in .git/objects; we use a bit of python to decode it.  Ta-da!  The header and content are right there.  If you really put your mind to it, you can build a git repository without git at all, just a hex editor and elbow grease.  But I don't recommend it -- for all of git's warts, it's still easier to use that making objects yourself.
+                    </aside>
+                </section>
+                <section>
+                    <h1>git<br>from the Ground Up</h1>
+                    <br />
+                    <code>http://kevingessner.com/git/</code>
+                    <code>http://git-scm.com/book</code>
+                    <code>#git</code>
+                    <aside class="notes">
+                    No matter how you build them, git is built on it's objects.  I hope that today's tour of how they work and fit together will make you a more effective git user.
+                    You can find these slides at kevingessner.com/git.  I also encourage you check out the free Pro Git book on git's website -- it has everything from a gentle introduction to deep explorations of git's internals.  you can always find me and other helpful folks in the git channel in IRC if you need help.  thank you all for listening.  I'm happy to take questions.
+
+
+                    leftovers!
+                    </aside>
+                </section>
+            </div>
+        </div>
+
+        </div>
+
+        <script src="lib/js/head.min.js"></script>
+        <script src="js/reveal.min.js"></script>
+
+        <script>
+
+            // Full list of configuration options available here:
+            // https://github.com/hakimel/reveal.js#configuration
+            Reveal.initialize({
+                controls: true,
+                progress: true,
+                history: true,
+                center: true,
+
+                width: 1700,
+                height: 1000,
+
+                theme: 'sky', //Reveal.getQueryHash().theme, // available themes are in /css/theme
+                transition: Reveal.getQueryHash().transition || 'default', // default/cube/page/concave/zoom/linear/fade/none
+
+                // Parallax scrolling
+                // parallaxBackgroundImage: 'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg',
+                // parallaxBackgroundSize: '2100px 900px',
+
+                // Optional libraries used to extend on reveal.js
+                dependencies: [
+                    { src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+                    { src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+                    { src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+                    { src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+                    { src: 'plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+                    { src: 'plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
+                ]
+            });
+
+        </script>
+
+    </body>
+</html>
