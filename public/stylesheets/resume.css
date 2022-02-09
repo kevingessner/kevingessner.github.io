@@ -8,7 +8,7 @@ body {
     margin: 0 auto;
     font-family: Optima, "Lucida Grande", Helvetica, sans;
     font-size: 16px;
-    line-height: 24px;
+    line-height: 1.5em;
     background: #fff url(../images/chrome/nihilartikel-bg.png) bottom left no-repeat;
     background-size: 100%;
     padding-bottom: 18%;
@@ -92,7 +92,8 @@ p {
 {
     #main
     {
-        max-width: 100%;
+        max-width: 80%;
+        font-size: 12px;
     }
     a
     {
